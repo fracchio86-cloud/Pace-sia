@@ -20,20 +20,22 @@ jobs:
           mkdir -p build_project
           unzip -q Sacred_Reflection_Android_0.2_GitHubAPK.zip -d build_project
 
-          echo "Contenuto estratto:"
-          find build_project -maxdepth 4 -type f | head -100
+          echo "=== CONTENUTO DEL PROGETTO ==="
+          find build_project -maxdepth 5 -type f | head -200
 
       - name: Trova il progetto Android
         run: |
-          PROJECT_DIR=$(find build_project -name build.gradle.kts -o -name build.gradle | head -1 | xargs dirname)
+          GRADLEW=$(find build_project -type f -name gradlew -print -quit)
 
-          if [ -z "$PROJECT_DIR" ]; then
-            echo "ERRORE: progetto Android non trovato"
-            find build_project -maxdepth 5 -type f
+          if [ -z "$GRADLEW" ]; then
+            echo "ERRORE: gradlew non trovato"
+            find build_project -maxdepth 8 -type f | head -300
             exit 1
           fi
 
-          echo "Progetto trovato in: $PROJECT_DIR"
+          PROJECT_DIR=$(dirname "$GRADLEW")
+
+          echo "Gradle trovato in: $GRADLEW"
           echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
 
       - name: Configura Java
@@ -42,19 +44,25 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Compila APK
+      - name: Aggiorna Gradle
         run: |
           cd "$PROJECT_DIR"
 
-          echo "Installo Gradle..."
-          wget -q https://services.gradle.org/distributions/gradle-8.11.1-all.zip
-          unzip -q gradle-8.11.1-all.zip -d "$HOME"
-          export PATH="$HOME/gradle-8.11.1/bin:$PATH"
+          if [ -f gradle/wrapper/gradle-wrapper.properties ]; then
+            sed -i -E 's/gradle-[0-9.]+-(bin|all)\.zip/gradle-8.11.1-bin.zip/' gradle/wrapper/gradle-wrapper.properties
+          fi
 
-          gradle assembleDebug --stacktrace
+          chmod +x gradlew
 
-      - name: Pubblica APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: Sacred-Reflection-APK
-          path: ${{ env.PROJECT_DIR }}/app/build/outputs/apk/debug/*.apk
+          echo "=== VERSIONE GRADLE ==="
+          ./gradlew --version
+
+      - name: Compila APK
+        run: |
+          cd "$PROJECT_DIR"
+          chmod +x gradlew
+          ./gradlew assembleDebug --stacktrace
+
+      - name: Trova APK generato
+        run: |
+          echo "=== CER
