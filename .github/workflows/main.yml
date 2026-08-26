@@ -23,7 +23,7 @@ jobs:
           echo "Contenuto estratto:"
           find build_project -maxdepth 4 -type f | head -100
 
-            - name: Trova il progetto Android
+      - name: Trova il progetto Android
         run: |
           PROJECT_DIR=$(find build_project -name build.gradle.kts -o -name build.gradle | head -1 | xargs dirname)
 
@@ -42,7 +42,7 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-            - name: Compila APK
+      - name: Compila APK
         run: |
           cd "$PROJECT_DIR"
 
@@ -57,5 +57,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Sacred-Reflection-APK
-          path: |
-            ${{ env.PROJECT_DIR }}/app/build/outputs/apk/debug/*.apk
+          path: ${{ env.PROJECT_DIR }}/app/build/outputs/apk/debug/*.apk
