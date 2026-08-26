@@ -47,9 +47,9 @@ jobs:
           cd "$PROJECT_DIR"
 
           echo "Installo Gradle..."
-          wget -q https://services.gradle.org/distributions/gradle-8.9-bin.zip
-          unzip -q gradle-8.9-bin.zip -d "$HOME"
-          export PATH="$HOME/gradle-8.9/bin:$PATH"
+          wget -q https://services.gradle.org/distributions/gradle-8.11.1-all.zip
+          unzip -q gradle-8.11.1-all.zip -d "$HOME"
+          export PATH="$HOME/gradle-8.11.1/bin:$PATH"
 
           gradle assembleDebug --stacktrace
 
