@@ -16,19 +16,27 @@ jobs:
 
       - name: Prepara il progetto
         run: |
+          rm -rf build_project
           mkdir -p build_project
           unzip -q Sacred_Reflection_Android_0.2_GitHubAPK.zip -d build_project
-          echo "Contenuto:"
-          find build_project -maxdepth 3 -type f | head -100
+
+          echo "Contenuto estratto:"
+          find build_project -maxdepth 4 -type f | head -100
 
       - name: Trova il progetto Android
         run: |
-          GRADLEW=$(find build_project -name gradlew -type f | head -1)
+          GRADLEW=$(find build_project -type f -name gradlew -print -quit)
+
           if [ -z "$GRADLEW" ]; then
             echo "ERRORE: gradlew non trovato"
+            echo "Cerco tutti i file del progetto:"
+            find build_project -type f | head -200
             exit 1
           fi
+
           PROJECT_DIR=$(dirname "$GRADLEW")
+
+          echo "gradlew trovato in: $GRADLEW"
           echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
 
       - name: Configura Java
