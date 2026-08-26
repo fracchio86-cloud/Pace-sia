@@ -18,24 +18,32 @@ jobs:
         run: |
           rm -rf build_project
           mkdir -p build_project
+
           unzip -q Sacred_Reflection_Android_0.2_GitHubAPK.zip -d build_project
 
-          echo "=== CONTENUTO DEL PROGETTO ==="
+          echo "=== FILE DEL PROGETTO ==="
           find build_project -maxdepth 5 -type f | head -200
 
       - name: Trova il progetto Android
         run: |
-          GRADLEW=$(find build_project -type f -name gradlew -print -quit)
+          PROJECT_DIR=""
 
-          if [ -z "$GRADLEW" ]; then
-            echo "ERRORE: gradlew non trovato"
-            find build_project -maxdepth 8 -type f | head -300
+          if [ -f "build_project/build.gradle.kts" ]; then
+            PROJECT_DIR="build_project"
+          else
+            PROJECT_DIR=$(find build_project -maxdepth 3 -type f \
+              \( -name "build.gradle.kts" -o -name "build.gradle" \) \
+              ! -path "*/app/*" \
+              -print -quit | xargs -r dirname)
+          fi
+
+          if [ -z "$PROJECT_DIR" ]; then
+            echo "ERRORE: progetto Android non trovato"
+            find build_project -maxdepth 6 -type f
             exit 1
           fi
 
-          PROJECT_DIR=$(dirname "$GRADLEW")
-
-          echo "Gradle trovato in: $GRADLEW"
+          echo "Progetto Android trovato in: $PROJECT_DIR"
           echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
 
       - name: Configura Java
@@ -44,25 +52,43 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Aggiorna Gradle
+      - name: Installa Gradle 8.11.1
         run: |
-          cd "$PROJECT_DIR"
+          wget -q https://services.gradle.org/distributions/gradle-8.11.1-bin.zip
+          unzip -q gradle-8.11.1-bin.zip
+          echo "$PWD/gradle-8.11.1/bin" >> "$GITHUB_PATH"
 
-          if [ -f gradle/wrapper/gradle-wrapper.properties ]; then
-            sed -i -E 's/gradle-[0-9.]+-(bin|all)\.zip/gradle-8.11.1-bin.zip/' gradle/wrapper/gradle-wrapper.properties
-          fi
-
-          chmod +x gradlew
-
-          echo "=== VERSIONE GRADLE ==="
-          ./gradlew --version
+          gradle --version
 
       - name: Compila APK
         run: |
           cd "$PROJECT_DIR"
-          chmod +x gradlew
-          ./gradlew assembleDebug --stacktrace
+
+          echo "=== PROGETTO ==="
+          pwd
+
+          echo "=== FILE GRADLE ==="
+          find . -maxdepth 3 -type f \
+            \( -name "build.gradle.kts" -o -name "settings.gradle.kts" \) \
+            -print
+
+          echo "=== COMPILAZIONE ==="
+          gradle assembleDebug --stacktrace
 
       - name: Trova APK generato
         run: |
-          echo "=== CER
+          echo "=== CERCO GLI APK ==="
+
+          find "$PROJECT_DIR" -type f -name "*.apk" -print
+
+          echo "=== OUTPUT BUILD ==="
+
+          find "$PROJECT_DIR/app/build" -type f 2>/dev/null || true
+
+      - name: Pubblica APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Sacred-Reflection-APK
+          path: |
+            build_project/**/*.apk
+          if-no-files-found: error
